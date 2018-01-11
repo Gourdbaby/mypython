@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <title>Document</title>
+    <style>
+        ul li{
+            width: 100%;
+            border:1px solid #efefef;
+            padding: 10px;
+            box-sizing: border-box;
+            margin-top: 30px;
+            transition: all .5s ease;
+        }
+        ul li p{
+            font-size: 18px;
+            font-weight: bold;
+        }
+        ul li img{
+            opacity: 0;
+            width: 30px;
+            transition: all .5s ease;
+        }
+        ul li:hover{
+            box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+            transform: translateY(-10px);
+            cursor: pointer;
+        }
+        ul li:hover img{
+            opacity: 1;
+        }
+        @keyframes bounceInRight {
+            from, 60%, 75%, 90%, to {
+                animation-timing-function: cubic-bezier(0.215, 0.610, 0.355, 1.000);
+            }
+
+            from {
+                opacity: 0;
+                transform: translate3d(3000px, 0, 0);
+            }
+
+            60% {
+                opacity: 1;
+                transform: translate3d(-25px, 0, 0);
+            }
+
+            75% {
+                transform: translate3d(10px, 0, 0);
+            }
+
+            90% {
+                transform: translate3d(-5px, 0, 0);
+            }
+
+            to {
+                transform: none;
+            }
+        }
+        .bounceInRight {
+            animation: bounceInRight .7s ease forwards;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="title">添加标题</label>
+                        <input type="text" class="form-control" id="title" placeholder="TITLE">
+                    </div>
+                    <div class="form-group">
+                        <label for="content">添加内容</label>
+                        <input type="text" class="form-control" id="content" placeholder="CONTENT">
+                    </div>
+                    <button type="button" class="btn btn-default" id="submit">Submit</button>
+            </div>
+            <div class="col-md-8">
+                <ul class="list-unstyled" id="ul">
+                    
+                </ul>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.bootcss.com/jquery/2.1.4/jquery.min.js"></script>
+    <script>
+        function clicks(){
+            $("#submit").off('click');
+            var subid = $("#submit").attr('data-id');
+            var title = $("#title").val();
+            var content = $("#content").val();
+            if($("#ul li").length >= 5){
+                return false;
+            }
+            var data = {
+                title:title,
+                content:content
+            }
+
+            if(subid){
+                data.id = subid;
+                req('/blog/updatecontent',data,function(){
+                    location.reload();
+                })  
+            }else{
+                req('/blog/insertcontent',data,function(){
+                    $("#submit").on('click',clicks);
+                })
+            }
+        }
+        $("#submit").on('click',clicks)
+
+        req('/blog/getcontent')
+
+        function req(url,data, callback){
+            $.ajax({
+                type:'get',
+                data:data || null,
+                url:url,
+                success:function(res){
+                    console.log(res)
+                    if(res.success){
+                        var text = '';
+                        if(res.data && res.data.length != 0){
+                            $.each(res.data,function(index,item){
+                                text+='<li class="bounceInRight" data-id="'+item.id+'">'+
+                                    '<p>'+item.title+'</p>'+
+                                    '<span>'+item.content+'</span>'+
+                                    '<img src="/static/images/del.png" />'+
+                                '</li>';
+                            })
+                            $("#ul").append(text);
+                        }
+                        setTimeout(function(){
+                            $("#ul li").removeClass('bounceInRight');
+                            callback && callback();
+                        },700)
+                    }
+                }
+            })
+        }
+
+        $("#ul").on('click','img',function(ev){
+            ev.stopPropagation();
+            var id = $(this).parent().attr('data-id');
+            $.ajax({
+                type:'get',
+                url:'/blog/delcontent',
+                data:{
+                    id:id
+                },
+                success:function(res){
+                    if(res.success){
+                        location.reload();
+                    }
+                }
+            })
+        })
+
+        $("#ul").on('click','li',function(){
+            var id = $(this).attr('data-id');
+            var title = $(this).find('p').text();
+            var content = $(this).find('span').text();
+            $("#submit").attr('data-id', id);
+            $("#title").val(title);
+            $("#content").val(content);
+        })
+    </script>
+</body>
+</html>
